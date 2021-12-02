@@ -69,7 +69,7 @@ class SimpleRouter(SimpleRouterBase):
             self.processArp(self, restOfPacket, etherHeader, iface)
         elif etherHeader.type == 0x0800:
             self.processIp(self, restOfPacket, iface)
-        else
+        else:
             # ignore packets that neither ARP nor IP
             pass
 
@@ -91,7 +91,17 @@ class SimpleRouter(SimpleRouterBase):
           that corresponds to this IP.  If no IP found, then request is not for you and should be ignored.
         - if it is response, then you should decode and call self.arpCache.handleIncomingArpReply()
         '''
-        pass
+        arp = ArpHeader(arpPacket)
+        
+        if (arp.op == 1):    #Request
+            targetIface = self.findIfaceByIp(arp.tip)
+            if targetIface:
+                
+            else:
+                pass
+            
+        elif (arp.op == 2):   #Response
+
 
     def processIp(self, ipPacket, iface):
         '''
