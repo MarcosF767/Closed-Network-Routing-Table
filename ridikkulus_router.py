@@ -96,7 +96,8 @@ class SimpleRouter(SimpleRouterBase):
         if (arp.op == 1):    #Request
             targetIface = self.findIfaceByIp(arp.tip)
             if targetIface:
-                
+                packet = ArpHeader(hln=arp.hln, pln=arp.pln, op=2, sha=self.ip, sip=self.mac, tha=arp.sha, tip=arp.sip)
+                self.sendPacket(packet, iface)
             else:
                 pass
             

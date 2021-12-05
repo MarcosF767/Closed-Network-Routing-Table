@@ -45,7 +45,7 @@ class ArpCache(ArpCacheBase):
                 send all packets on the req->packets linked list
                 cache.removeRequest(req)
         '''
-
+        
         pass
 
     def resendOrRemoveQueuedRequest(self, req):
