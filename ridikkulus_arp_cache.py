@@ -27,7 +27,7 @@ class ArpCache(ArpCacheBase):
         super().__init__()
         self.router = router
 
-    def handleIncomingArpReply(self, arpHeader): # add more params as needed
+    def handleIncomingArpReply(self, arpHeader, iface): # add more params as needed
         '''
         IMPLEMENT THIS METHOD
 
@@ -45,8 +45,22 @@ class ArpCache(ArpCacheBase):
                 send all packets on the req->packets linked list
                 cache.removeRequest(req)
         '''
-        
-        pass
+        exists = False
+        for request in self.arpRequests:
+            if request.ip == arpHeader.sip:
+                exists = True
+                
+        if exists:
+            
+            req = self.insertArpEntry(arpHeader.sip, arpHeader.sha)
+
+            if req:
+                for packet in req.packets:
+                    pack = IpHeader(hl=5, tos=0, len=84, id=42095, off=0, ttl=53, p=1, sum=47603, src='1.1.1.1', dst='192.168.100.156')
+                    super().sendPacket(packet, outIface)
+                
+        else:
+            pass
 
     def resendOrRemoveQueuedRequest(self, req):
         '''

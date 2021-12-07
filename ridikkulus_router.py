@@ -38,7 +38,6 @@ class SimpleRouter(SimpleRouterBase):
     #
     def handlePacket(self, origPacket, inIface):
         print("Got packet of size %d on interface %s" % (len(origPacket), inIface), file=sys.stderr)
-
         iface = self.findIfaceByName(inIface)
         if not iface:
             print("Received packet, but interface is unknown, ignoring", file=sys.stderr)
@@ -60,15 +59,15 @@ class SimpleRouter(SimpleRouterBase):
         etherHeader = EtherHeader()
         offset = etherHeader.decode(etherPacket)
         restOfPacket = etherPacket[offset:]
-
+        
         # Study fields available in each header in router_base/headers.py.
         # All fields there follow the correspodning specifications, so you may
         # need to check those, if any question
 
         if etherHeader.type == 0x0806:
-            self.processArp(self, restOfPacket, etherHeader, iface)
+            self.processArp(restOfPacket, etherHeader, iface)
         elif etherHeader.type == 0x0800:
-            self.processIp(self, restOfPacket, iface)
+            self.processIp(restOfPacket, iface)
         else:
             # ignore packets that neither ARP nor IP
             pass
@@ -91,19 +90,23 @@ class SimpleRouter(SimpleRouterBase):
           that corresponds to this IP.  If no IP found, then request is not for you and should be ignored.
         - if it is response, then you should decode and call self.arpCache.handleIncomingArpReply()
         '''
-        arp = ArpHeader(arpPacket)
+        arp = ArpHeader()
+        offset = arp.decode(arpPacket)
         
         if (arp.op == 1):    #Request
             targetIface = self.findIfaceByIp(arp.tip)
             if targetIface:
-                packet = ArpHeader(hln=arp.hln, pln=arp.pln, op=2, sha=iface.mac, sip=arp.tip, tha=arp.sha, tip=arp.sip)
+                packet = ArpHeader(hln=6, pln=4, op=2, sha=iface.mac, sip=iface.ip, tha=arp.sha, tip=arp.sip)
                 pk = packet.encode()
+                etherHead = EtherHeader(shost=iface.mac, dhost=arp.sha, type=2054)
+                pk = etherHead.encode() + pk
                 self.sendPacket(pk, iface)
             else:
                 pass
             
         elif (arp.op == 2):   #Response
-            self.arpCache.handleIncomingArpReply(arp)
+            self.arpCache.handleIncomingArpReply(arp, iface)
+                    
 
     def processIp(self, ipPacket, iface):
         '''
