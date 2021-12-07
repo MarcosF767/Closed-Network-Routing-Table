@@ -27,6 +27,7 @@ class SimpleRouterBase:
         self.arpCache = arpCache
         self.ifaces = []
         self.ifNameToIpMap = {}
+        self.queue = []
 
     def sendPacket(self, packet, outIface):
         self.pox.begin_sendPacket(packet, outIface)
