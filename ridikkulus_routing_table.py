@@ -33,4 +33,8 @@ class RoutingTable(RoutingTableBase):
         ##########################
         ## TODO: IMPLEMENT THIS ##
         ##########################
-        raise RuntimeError("NOT IMPLEMENTED YET")
+        for row in self.entries:
+            if str(row.dest) == str(ip):
+                return row.ifName
+
+        return None
