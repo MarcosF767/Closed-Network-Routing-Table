@@ -102,6 +102,7 @@ class SimpleRouter(SimpleRouterBase):
             
         elif (arp.op == 2):   #Response
             self.arpCache.insertArpEntry(arp.sha, arp.sip)
+            self.routingTable.addEntry(RoutingTableEntry(dest=arp.sip,gw=arp.sip,mask="0.0.0.0",ifName=iface.name))
                     
 
     def processIp(self, ipPacket, iface):
