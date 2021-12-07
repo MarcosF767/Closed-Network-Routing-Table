@@ -67,7 +67,7 @@ class SimpleRouter(SimpleRouterBase):
         if etherHeader.type == 0x0806:
             self.processArp(restOfPacket, etherHeader, iface)
         elif etherHeader.type == 0x0800:
-            self.processIp(restOfPacket, iface)
+            self.processIp(restOfPacket, etherHeader, iface)
         else:
             # ignore packets that neither ARP nor IP
             pass
@@ -105,7 +105,7 @@ class SimpleRouter(SimpleRouterBase):
             self.routingTable.addEntry(RoutingTableEntry(dest=arp.sip,gw=arp.sip,mask="0.0.0.0",ifName=iface.name))
                     
 
-    def processIp(self, ipPacket, iface):
+    def processIp(self, ipPacket, etherHeader, iface):
         '''
         SUGGESTED IMPLEMENTATION LOGIC
         You are free to implement this method and relevant calling methods in other methods
@@ -120,7 +120,13 @@ class SimpleRouter(SimpleRouterBase):
           If no interface found, then this packet is for someone else and you should call self.processIpToForward()
         - If it is for the router, then call self.processIpToSelf
         '''
-        pass
+        ip = IpHeader()                
+        ipIndex = ip.decode(ipPacket)
+
+        inIface = self.findIfaceByIp(ip.dst)
+        
+        if inIface:
+            processIcmp(ipPacket[ipIndex:], etherHeader, ip, inIface)
 
 
     def processIpToSelf(self, ipPacket, origIpHeader, iface):
@@ -137,7 +143,7 @@ class SimpleRouter(SimpleRouterBase):
         '''
         pass
 
-    def processIcmp(self, icmpPacket, origIpHeader, iface):
+    def processIcmp(self, icmpPacket, etherHeader, origIpHeader, iface):
         '''
         SUGGESTED IMPLEMENTATION LOGIC
         You are free to implement this method and relevant calling methods in other methods
@@ -147,7 +153,32 @@ class SimpleRouter(SimpleRouterBase):
 
         Decode ICMP packet and process ICMP pings (=send reply). All other incoming ICMP packets can be ignored.
         '''
-        pass
+        
+        a = etherHeader.dhost
+        etherHeader.dhost = etherHeader.shost
+        etherHeader.shost = a
+         
+        b = origIpHeader.dst
+        origIpHeader.dst = origIpHeader.src
+        origIpHeader.src = b
+
+        icmp = IcmpHeader()
+        icmpIndex = icmp.decode(icmpPacket)
+               
+        
+        
+        if len(icmpPacket[icmpIndex:]) > 0:
+            icmp.type=3
+            icmp.code=3
+        else:
+            icmp.type = 0
+        cSum = checksum(icmp.encode())
+        pkt.sum = cSum    
+        buff = etherHeader.encode() + origIpHeader.encode() + icmp.encode() + packet[icmpIndex:]
+        outIface = self.findIfaceByMac(etherHeader.shost)
+        
+        self.sendPacket(buff, outIface.name)
+        
 
     def processUdp(self, udpPacket, origIpHeader, iface):
         '''
