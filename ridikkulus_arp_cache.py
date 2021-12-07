@@ -91,6 +91,7 @@ class ArpCache(ArpCacheBase):
         to re-send or remove the request, and then cleans up no longer valid
         entries in the ARP cache.
         '''
+        '''
         for request in self.arpRequests:
             self.resendOrRemoveQueuedRequest(request)
 
@@ -101,3 +102,4 @@ class ArpCache(ArpCacheBase):
 
         for entry in entriesToRemove:
             self.cacheEntries.remove(entry)
+            '''
