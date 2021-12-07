@@ -39,9 +39,9 @@ class SimpleRouter(SimpleRouterBase):
     def handlePacket(self, origPacket, inIface):
         print("Got packet of size %d on interface %s" % (len(origPacket), inIface), file=sys.stderr)
         iface = self.findIfaceByName(inIface)
-        if not iface:
+        '''if not iface:
             print("Received packet, but interface is unknown, ignoring", file=sys.stderr)
-            return
+            return'''
 
         # all incoming packets are guaranteed to be Ethernet, so unconditionally process them as Ethernet
         self.processEther(origPacket, iface)
@@ -94,15 +94,11 @@ class SimpleRouter(SimpleRouterBase):
         offset = arp.decode(arpPacket)
         
         if (arp.op == 1):    #Request
-            targetIface = self.findIfaceByIp(arp.tip)
-            if targetIface:
-                packet = ArpHeader(hln=6, pln=4, op=2, sha=iface.mac, sip=iface.ip, tha=arp.sha, tip=arp.sip)
-                pk = packet.encode()
-                etherHead = EtherHeader(shost=iface.mac, dhost=arp.sha, type=2054)
-                pk = etherHead.encode() + pk
-                self.sendPacket(pk, iface)
-            else:
-                pass
+            packet = ArpHeader(hln=6, pln=4, op=2, sha=iface.mac, sip=iface.ip, tha=arp.sha, tip=arp.sip)
+            pk = packet.encode()
+            etherHead = EtherHeader(shost=iface.mac, dhost=arp.sha, type=2054)
+            pk = etherHead.encode() + pk
+            self.sendPacket(pk, iface)
             
         elif (arp.op == 2):   #Response
             self.arpCache.handleIncomingArpReply(arp, iface)
