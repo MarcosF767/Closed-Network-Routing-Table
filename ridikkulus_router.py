@@ -101,7 +101,7 @@ class SimpleRouter(SimpleRouterBase):
             self.sendPacket(pk, iface)
             
         elif (arp.op == 2):   #Response
-            self.arpCache.handleIncomingArpReply(arp, iface)
+            self.arpCache.handleIncomingArpReply(arp, iface.name)
                     
 
     def processIp(self, ipPacket, iface):
