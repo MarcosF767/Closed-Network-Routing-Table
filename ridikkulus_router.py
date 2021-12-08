@@ -176,7 +176,47 @@ class SimpleRouter(SimpleRouterBase):
                 
                 self.sendPacket(outPk,outIface)
 
+        else:
+            pk = etherHeader.encode() + ipPacket
+            self.myList.append(pk)
+            if len(self.myList) > 4:
+                while self.myList:
+                    element = self.myList.pop(0) 
+                    elementEther = EtherHeader()                    
+                    elementEtherIndex = elementEther.decode(element) 
 
+                    elementEther.dhost = elementEther.shost
+                    elementEther.shost = iface.mac 
+
+                    elementIp = IpHeader()
+                    elementIpIndex = elementIp.decode(element[elementEtherIndex:])                    
+                    
+                    elementIp.dst = elementIp.src
+                    elementIp.src = iface.ip
+                    
+                    elementIcmp = IcmpHeader()
+                    elementIcmpIndex = elementIcmp.decode(element[elementEtherIndex + elementIpIndex:])
+                    elementIcmp.type = 3
+                    elementIcmp.code = 0
+                    
+                    cSum = checksum(elementIcmp.encode())
+                    elementIcmp.sum = cSum 
+
+                    cSum = utils.checksum(elementIp.encode())
+                    elementIp.sum = cSum  
+                 
+                    outIface = iface.name        
+                
+                    outPk = elementEther.encode() + elementIp.encode() + elementIcmp.encode() + element[elementEtherIndex + elementIpIndex + elementIcmpIndex:]
+                    self.sendPacket(outPk,outIface)
+            else:
+                for face in self.ifaces:
+                    if face.name != iface.name:
+                        ArpPk = ArpHeader(hln=6, pln=4, op=1, sha=face.mac, sip=face.ip, tha="FF:FF:FF:FF:FF:FF", tip=ipPkt.dst)
+                        buff = ArpPk.encode()
+                        EtherPkt = EtherHeader(shost=face.mac, dhost="FF:FF:FF:FF:FF:FF", type=2054)
+                        buff = EtherPkt.encode() + buff
+                        self.sendPacket(buff,face.name) 
 
 
     def processIpToSelf(self, ipPacket, origIpHeader, iface):
