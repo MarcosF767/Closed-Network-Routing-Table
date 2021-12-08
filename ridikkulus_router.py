@@ -161,6 +161,7 @@ class SimpleRouter(SimpleRouterBase):
         b = origIpHeader.dst
         origIpHeader.dst = origIpHeader.src
         origIpHeader.src = b
+        origIpHeader.ttl = 64
 
         icmp = IcmpHeader()
         icmpIndex = icmp.decode(icmpPacket)
