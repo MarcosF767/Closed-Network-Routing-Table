@@ -127,6 +127,56 @@ class SimpleRouter(SimpleRouterBase):
         
         if inIface:
             processIcmp(ipPacket[ipIndex:], etherHeader, ip, inIface)
+        else:
+            ip.ttl =  ip.ttl - 1
+            ip.sum = 0
+            cSum = checksum(ip.encode())
+            ip.sum = cSum
+            
+        if ip.ttl < 1:
+            pk = IcmpHeader()
+            pk.type = 11
+            pk.code = 0
+            cSum = checksum(pk.encode())
+            pk.sum = cSum
+
+            buff = etherHeader.encode() + ip.encode() + pk.encode() + ipPacket[ipIndex:]
+            outIface = self.findIfaceByMac(etherHeader.dhost)
+
+            self.sendPacket(buff, outIface.name)
+            
+        if (self.arpCache.lookup(ip.dst) != None):
+            
+            if(self.routingTable.lookup(str(ip.dst)) != None):
+                
+                while self.myList:
+                    element = self.myList.pop(0) 
+                    elementEther = EtherHeader()                    
+                    elementEtherIndex = elementEther.decode(element) 
+                
+                    elementIp = IpHeader()
+                    elementIpIndex = elementIp.decode(element[elementEtherIndex:])                    
+                    elementIp.ttl =  elementIp.ttl - 1
+                    cSum = checksum(elementIp.encode())
+                    elementIp.sum = cSum  
+                
+                    outIface = self.routingTable.lookup(str(elementIp.dst))    
+                
+                    elementEther.shost = self.findIfaceByName(outIface).mac
+                    elementEther.dhost = self.arpCache.lookup(elementIp.dst).mac
+                
+                    outPk = elementEther.encode() + elementIp.encode() + element[elementEtherIndex + elementIpIndex:]
+                    self.sendPacket(outPk,outIface) 
+                    
+                outIface = self.routingTable.lookup(str(ip.dst))   
+                etherHeader.shost = self.findIfaceByName(outIface).mac
+                etherHeader.dhost = self.arpCache.lookup(ip.dst).mac
+                
+                outPk = etherHeader.encode() + ip.encode() + ipPacket[ipIndex:]
+                
+                self.sendPacket(outPk,outIface)
+
+
 
 
     def processIpToSelf(self, ipPacket, origIpHeader, iface):
@@ -161,7 +211,6 @@ class SimpleRouter(SimpleRouterBase):
         b = origIpHeader.dst
         origIpHeader.dst = origIpHeader.src
         origIpHeader.src = b
-        origIpHeader.ttl = 64
 
         icmp = IcmpHeader()
         icmpIndex = icmp.decode(icmpPacket)
@@ -222,7 +271,7 @@ class SimpleRouter(SimpleRouterBase):
           new Ethernet header, reduce TTL, recalculated checksum, create full packet and forward it.
 
           If arp cache entry doesn't exist, you need to create ARP request, send ARP request, and then
-          queue the request: self.arpCache.queueRequest(ip, ipPacket, interfaceLookedUpByRoutingTable).
+          myList the request: self.arpCache.myListRequest(ip, ipPacket, interfaceLookedUpByRoutingTable).
           Whenever response comes, you will be sending the packet(s) from inside of ridikkulus_arp_cache.py:handleIncomingArpReply
 
         - if .gw is anything but 0.0.0.0 the process is exactly the same as above, but you need to use
